@@ -1,0 +1,50 @@
+# -----------------------------------------------------------------------------
+#  BONUS vhosts - installed only when ENABLE_BONUS=1 (docker-compose.bonus.yml).
+#  Each bonus web service gets a sub-domain instead of an extra published port,
+#  so 443 remains the single way into the infrastructure.
+# -----------------------------------------------------------------------------
+
+# Static showcase site (HTML/CSS/JS - no PHP).
+server {
+    listen              443 ssl;
+    server_name         static.${DOMAIN_NAME};
+    ssl_certificate     /etc/nginx/ssl/inception.crt;
+    ssl_certificate_key /etc/nginx/ssl/inception.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass       http://static-site:3000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
+
+# Adminer - database administration UI.
+server {
+    listen              443 ssl;
+    server_name         adminer.${DOMAIN_NAME};
+    ssl_certificate     /etc/nginx/ssl/inception.crt;
+    ssl_certificate_key /etc/nginx/ssl/inception.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass       http://adminer:8080;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
+
+# Home-made status dashboard (the "service of your choice").
+server {
+    listen              443 ssl;
+    server_name         status.${DOMAIN_NAME};
+    ssl_certificate     /etc/nginx/ssl/inception.crt;
+    ssl_certificate_key /etc/nginx/ssl/inception.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass       http://status:5000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
