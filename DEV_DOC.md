@@ -97,9 +97,9 @@ make build-bonus  # build every image
 
 | Target | Effect |
 |---|---|
-| `dirs` | `mkdir -p /home/chimex/data/{wordpress,mariadb}` — the bind-backed volumes need these paths to exist |
+| `dirs` | `mkdir -p /home/mozahnou/data/{wordpress,mariadb}` — the bind-backed volumes need these paths to exist |
 | `secrets` | generates any missing `secrets/*.txt` |
-| `hosts` | adds `chimex.42.fr` and the bonus sub-domains to `/etc/hosts` (asks for `sudo`) |
+| `hosts` | adds `mozahnou.42.fr` and the bonus sub-domains to `/etc/hosts` (asks for `sudo`) |
 
 Underneath, the Makefile is a thin wrapper:
 
@@ -199,7 +199,7 @@ which is why these commands run *inside* the container.
 ```bash
 docker volume ls --filter name=inception
 docker volume inspect inception_wordpress_files
-ls -la /home/chimex/data/wordpress
+ls -la /home/mozahnou/data/wordpress
 ```
 
 ### Cleaning
@@ -212,7 +212,7 @@ ls -la /home/chimex/data/wordpress
 | `make re` | `fclean`, then a full rebuild | | | |
 
 `fclean` deletes the volume contents from inside a throwaway root container
-(`docker run --rm -v /home/chimex/data:/data debian:bookworm rm -rf ...`),
+(`docker run --rm -v /home/mozahnou/data:/data debian:bookworm rm -rf ...`),
 because those files belong to the `mysql` and `www-data` users. That keeps the
 Makefile free of `sudo`.
 
@@ -220,12 +220,12 @@ Makefile free of `sudo`.
 
 ## 4. Where the data lives, and how it persists
 
-Two named volumes, both backed by a directory under `/home/chimex/data`:
+Two named volumes, both backed by a directory under `/home/mozahnou/data`:
 
 | Volume | Mounted at | On the host | Holds |
 |---|---|---|---|
-| `inception_wordpress_files` | `/var/www/html` in nginx, wordpress and ftp | `/home/chimex/data/wordpress` | WordPress core, `wp-config.php`, themes, plugins, uploads |
-| `inception_mariadb_data` | `/var/lib/mysql` in mariadb | `/home/chimex/data/mariadb` | the databases, InnoDB tablespaces, logs |
+| `inception_wordpress_files` | `/var/www/html` in nginx, wordpress and ftp | `/home/mozahnou/data/wordpress` | WordPress core, `wp-config.php`, themes, plugins, uploads |
+| `inception_mariadb_data` | `/var/lib/mysql` in mariadb | `/home/mozahnou/data/mariadb` | the databases, InnoDB tablespaces, logs |
 
 They are declared like this:
 
@@ -233,7 +233,7 @@ They are declared like this:
 volumes:
   wordpress_files:
     driver: local
-    driver_opts: { type: none, o: bind, device: /home/chimex/data/wordpress }
+    driver_opts: { type: none, o: bind, device: /home/mozahnou/data/wordpress }
 ```
 
 This is a **named volume** — services refer to it by name and no service
@@ -252,7 +252,7 @@ Redis has no volume at all: it is a cache, persistence is disabled
 | `make down` then `make` | kept | kept |
 | `docker compose down -v` | **deleted** | **deleted** |
 | `make fclean` | **deleted** | **deleted** |
-| deleting `/home/chimex/data/*` | **deleted** | **deleted** |
+| deleting `/home/mozahnou/data/*` | **deleted** | **deleted** |
 
 Because the entrypoints are idempotent, a stack brought back up on existing
 volumes reuses them untouched: MariaDB finds its data directory and skips

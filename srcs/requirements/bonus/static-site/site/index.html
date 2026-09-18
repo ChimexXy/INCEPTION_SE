@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inception &middot; chimex</title>
+<title>Inception &middot; mozahnou</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -31,7 +31,7 @@
       <li><strong>No ready-made images.</strong> Every Dockerfile starts from <code>debian:bookworm</code> &mdash; the penultimate stable Debian &mdash; and installs its service itself.</li>
       <li><strong>Secrets are files, not variables.</strong> Passwords are mounted at <code>/run/secrets/</code>; nothing sensitive is baked into a layer or printed by <code>docker inspect</code>.</li>
       <li><strong>One entry point.</strong> Only 443 is published, TLSv1.2 and TLSv1.3 only. The database is never reachable from the host.</li>
-      <li><strong>State lives in named volumes</strong> under <code>/home/chimex/data</code>, so containers stay disposable.</li>
+      <li><strong>State lives in named volumes</strong> under <code>/home/mozahnou/data</code>, so containers stay disposable.</li>
     </ul>
   </section>
 
@@ -49,7 +49,7 @@
 </main>
 
 <footer>
-  <p>Built by <strong>chimex</strong> &middot; <span id="year"></span></p>
+  <p>Built by <strong>mozahnou</strong> &middot; <span id="year"></span></p>
 </footer>
 
 <script src="app.js"></script>

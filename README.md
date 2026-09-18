@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by chimex.*
+*This project has been created as part of the 42 curriculum by mozahnou.*
 
 # Inception
 
@@ -23,7 +23,7 @@ The mandatory stack is three containers behind a single TLS entry point:
                     └──────────── docker network "inception" ──────┘
                              │                        │
                     volume: wordpress_files    volume: mariadb_data
-                    /home/chimex/data/wordpress   /home/chimex/data/mariadb
+                    /home/mozahnou/data/wordpress   /home/mozahnou/data/mariadb
 ```
 
 Nothing is pulled ready-made: `nginx:inception`, `wordpress:inception` and
@@ -57,19 +57,19 @@ so the mandatory infrastructure can always be run and evaluated on its own.
 ### Run it
 
 ```bash
-make            # mandatory stack only  → https://chimex.42.fr
+make            # mandatory stack only  → https://mozahnou.42.fr
 make bonus      # mandatory + the five bonus services
 make test       # the mandatory checks
 make test-bonus # the bonus checks
 make down       # stop everything, keep the data
-make fclean     # remove containers, images, volumes and /home/chimex/data
+make fclean     # remove containers, images, volumes and /home/mozahnou/data
 make re         # fclean + make
 make help       # every target
 ```
 
 The first `make` also performs the one-time setup: it creates
-`/home/chimex/data/{wordpress,mariadb}`, generates a random password for each
-secret in `secrets/`, and adds `chimex.42.fr` (plus the bonus sub-domains) to
+`/home/mozahnou/data/{wordpress,mariadb}`, generates a random password for each
+secret in `secrets/`, and adds `mozahnou.42.fr` (plus the bonus sub-domains) to
 `/etc/hosts` — that last step is the only one that asks for `sudo`.
 
 The certificate is self-signed, so a browser will show a warning once; that is
@@ -201,7 +201,7 @@ A named volume is a first-class Docker object: created on demand, listed by
 project depends on — **populated from the image the first time it is mounted**.
 
 The subject asks for named volumes whose data nevertheless lives in
-`/home/chimex/data`. Both requirements are satisfied by giving the *volume* a
+`/home/mozahnou/data`. Both requirements are satisfied by giving the *volume* a
 bind-type local driver:
 
 ```yaml
@@ -211,7 +211,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: /home/chimex/data/wordpress
+      device: /home/mozahnou/data/wordpress
 ```
 
 `inception_wordpress_files` is a real named volume — services refer to it by

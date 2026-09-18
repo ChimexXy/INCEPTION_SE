@@ -6,7 +6,7 @@ const SERVICES = [
   { name: 'mariadb',     kind: 'core',  desc: '10.11 on a named volume. Never exposed outside the docker network.' },
   { name: 'redis',       kind: 'bonus', desc: 'Object cache for WordPress, capped at 256 MB with an LRU policy.' },
   { name: 'ftp',         kind: 'bonus', desc: 'vsftpd, chrooted on the WordPress volume, passive mode only.' },
-  { name: 'adminer',     kind: 'bonus', desc: 'Single-file database UI, reachable at adminer.chimex.42.fr.' },
+  { name: 'adminer',     kind: 'bonus', desc: 'Single-file database UI, reachable at adminer.mozahnou.42.fr.' },
   { name: 'static-site', kind: 'bonus', desc: 'This page. nginx serving plain HTML/CSS/JS on an internal port.' },
   { name: 'status',      kind: 'bonus', desc: 'Home-made health dashboard that probes every service in the stack.' },
 ];
