@@ -1,3 +1,5 @@
 *
 !conf/
+!conf/**
 !tools/
+!tools/**
