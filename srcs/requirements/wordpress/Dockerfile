@@ -36,7 +36,7 @@ RUN curl -fsSL -o /usr/local/bin/wp \
  && chmod +x /usr/local/bin/wp \
  && wp --allow-root --version
 
-COPY conf/www.conf /etc/php/8.2/fpm/pool.d/www.conf
+COPY conf/wordpress.conf /etc/php/8.2/fpm/pool.d/www.conf
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
  && mkdir -p /run/php /var/www/html \
