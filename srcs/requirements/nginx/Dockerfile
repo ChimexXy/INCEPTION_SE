@@ -26,8 +26,8 @@ RUN ln -sf /dev/stdout /var/log/nginx/access.log \
  && ln -sf /dev/stderr /var/log/nginx/error.log
 
 # Templates (not final configs): the domain name comes from the environment.
-COPY conf/default.conf.template /etc/nginx/templates/default.conf.template
-COPY conf/bonus.conf.template   /etc/nginx/templates/bonus.conf.template
+COPY conf/nginx.conf.template       /etc/nginx/templates/default.conf.template
+COPY conf/nginx_bonus.conf.template /etc/nginx/templates/bonus.conf.template
 
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh && mkdir -p /etc/nginx/ssl
