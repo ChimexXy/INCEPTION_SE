@@ -8,7 +8,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /var/run/vsftpd/empty
 
-COPY conf/vsftpd.conf /etc/vsftpd.conf
+COPY conf/ftp.conf /etc/vsftpd.conf
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
