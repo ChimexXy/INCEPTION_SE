@@ -1,6 +1,3 @@
-# =============================================================================
-#  BONUS - vsftpd, FTP access to the WordPress website volume
-# =============================================================================
 FROM debian:bookworm
 
 RUN apt-get update \
@@ -12,7 +9,6 @@ COPY conf/vsftpd.conf /etc/vsftpd.conf
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# 21 = control channel, 21000-21010 = passive data channels.
 EXPOSE 21 21000-21010
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

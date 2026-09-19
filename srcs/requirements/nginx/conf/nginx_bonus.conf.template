@@ -1,10 +1,3 @@
-# -----------------------------------------------------------------------------
-#  BONUS vhosts - installed only when ENABLE_BONUS=1 (docker-compose.bonus.yml).
-#  Each bonus web service gets a sub-domain instead of an extra published port,
-#  so 443 remains the single way into the infrastructure.
-# -----------------------------------------------------------------------------
-
-# Static showcase site (HTML/CSS/JS - no PHP).
 server {
     listen              443 ssl;
     server_name         static.${DOMAIN_NAME};
@@ -19,7 +12,6 @@ server {
     }
 }
 
-# Adminer - database administration UI.
 server {
     listen              443 ssl;
     server_name         adminer.${DOMAIN_NAME};
@@ -34,7 +26,6 @@ server {
     }
 }
 
-# Home-made status dashboard (the "service of your choice").
 server {
     listen              443 ssl;
     server_name         status.${DOMAIN_NAME};

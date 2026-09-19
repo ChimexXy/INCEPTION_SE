@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-"""Inception status dashboard.
-
-Probes every service of the stack the way a real client would and renders the
-result as a single HTML page (plus a JSON endpoint for scripting).
-
-Standard library only - no third-party dependency, no Docker socket.
-"""
-
 import json
 import os
 import socket
@@ -18,7 +9,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 LISTEN_PORT = int(os.environ.get("STATUS_PORT", "5000"))
 TIMEOUT = 2.0
 
-# name, host, port, probe kind, one-line description
 CHECKS = [
     ("nginx",       "nginx",       443,  "tls",   "TLS entry point (443)"),
     ("wordpress",   "wordpress",   9000, "tcp",   "php-fpm FastCGI pool"),
@@ -40,9 +30,9 @@ def probe(host, port, kind):
     try:
         if kind == "tls":
             ctx = ssl.create_default_context()
-            # The certificate is self-signed on purpose; we are checking that
-            # the handshake completes and which protocol was negotiated, not
-            # that a public CA vouches for it.
+        
+        
+        
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
             with _connect(host, port) as raw:
@@ -65,7 +55,7 @@ def probe(host, port, kind):
             detail = banner[:48]
 
         elif kind == "mysql":
-            # MariaDB speaks first: the handshake packet carries the version.
+        
             with _connect(host, port) as sock:
                 head = sock.recv(128)
             if len(head) < 6:
@@ -85,11 +75,11 @@ def probe(host, port, kind):
                 return False, "HTTP " + status
             detail = "HTTP " + status
 
-        else:  # plain tcp
+        else: 
             with _connect(host, port):
                 detail = "connected"
 
-    except Exception as exc:                      # noqa: BLE001 - report, never crash
+    except Exception as exc:                     
         return False, type(exc).__name__ + ": " + str(exc)[:60]
 
     return True, "%s  (%d ms)" % (detail, (time.monotonic() - started) * 1000)
@@ -170,9 +160,9 @@ def render(results):
                 "up" if r["ok"] else "down", "up" if r["ok"] else "down",
                 escape(r["detail"])))
 
-    # Plain substitution on purpose: the CSS above contains both '%' (width:100%)
-    # and '{...}' (every rule), so %-formatting and str.format would both choke
-    # on it. Literal markers keep the stylesheet readable and unescaped.
+
+
+
     return (PAGE
             .replace("__BANNER__", banner)
             .replace("__ROWS__", "\n".join(rows))
@@ -197,8 +187,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/health":
             results = collect()
             healthy = all(r["ok"] for r in results)
-            # 503 when something is down, so this endpoint is usable by any
-            # external monitoring that only looks at the status code.
+        
+        
             self._send(200 if healthy else 503,
                        json.dumps({"healthy": healthy, "checks": results}, indent=2),
                        "application/json")
@@ -212,7 +202,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    # ThreadingHTTPServer.serve_forever() is the process's own event loop, not a
-    # keep-alive hack: this container's job *is* to serve HTTP.
+
+
     print("[status] listening on 0.0.0.0:%d" % LISTEN_PORT)
     ThreadingHTTPServer(("0.0.0.0", LISTEN_PORT), Handler).serve_forever()
