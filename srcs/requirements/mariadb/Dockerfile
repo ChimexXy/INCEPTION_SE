@@ -25,7 +25,7 @@ RUN rm -rf /var/lib/mysql/* && chown mysql:mysql /var/lib/mysql
 # Our settings are loaded LAST (99-) so they override Debian's 50-server.cnf,
 # which would otherwise pin bind-address to 127.0.0.1 and make the database
 # unreachable from the WordPress container.
-COPY conf/99-inception.cnf /etc/mysql/mariadb.conf.d/99-inception.cnf
+COPY conf/mariadb.cnf /etc/mysql/mariadb.conf.d/99-inception.cnf
 
 COPY tools/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
