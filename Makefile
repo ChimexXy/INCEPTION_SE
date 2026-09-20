@@ -16,7 +16,6 @@ SECRET_FILES := $(SECRETS_DIR)/db_root_password.txt \
                 $(SECRETS_DIR)/wp_user_password.txt \
                 $(SECRETS_DIR)/ftp_password.txt
 
-.PHONY: all bonus setup dirs secrets hosts down clean fclean re
 
 all: setup
 	@$(COMPOSE) up -d --build
@@ -51,9 +50,15 @@ clean: down
 		status:inception 2>/dev/null || true
 		rm -rf $(SECRET_FILES)
 
+
 fclean: clean
 	@docker volume rm -f inception_wordpress_files inception_mariadb_data 2>/dev/null || true
-	@docker run --rm -v $(DATA_PATH):/data debian:bookworm \
-	rm -rf $(DATA_PATH) 2>/dev/null || true
+	@docker run --rm \
+		-v $(DATA_PATH):/data \
+		debian:bookworm \
+		rm -rf /data/wordpress /data/mariadb
+	@rm -f $(SECRET_FILES)
 
 re: fclean all
+
+.PHONY: all bonus setup dirs secrets down clean fclean re
