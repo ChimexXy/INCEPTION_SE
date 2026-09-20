@@ -24,7 +24,7 @@ all: setup
 bonus: setup
 	@$(COMPOSE_BONUS) up -d --build
 
-setup: dirs secrets hosts
+setup: dirs secrets
 
 dirs:
 	@mkdir -p $(DATA_PATH)/wordpress $(DATA_PATH)/mariadb
@@ -36,12 +36,12 @@ $(SECRETS_DIR)/%.txt:
 	@openssl rand -base64 24 | tr -d '\n/+=' | cut -c1-24 > $@
 	@chmod 600 $@
 
-hosts:
-	@for host in $(DOMAIN_NAME) static.$(DOMAIN_NAME) adminer.$(DOMAIN_NAME) status.$(DOMAIN_NAME); do \
-		if ! grep -qE "^[^#]*[[:space:]]$$host([[:space:]]|$$)" /etc/hosts; then \
-			echo "127.0.0.1 $$host" | sudo tee -a /etc/hosts > /dev/null; \
-		fi; \
-	done
+# hosts:
+# 	@for host in $(DOMAIN_NAME) static.$(DOMAIN_NAME) adminer.$(DOMAIN_NAME) status.$(DOMAIN_NAME); do \
+# 		if ! grep -qE "^[^#]*[[:space:]]$$host([[:space:]]|$$)" /etc/hosts; then \
+# 			echo "127.0.0.1 $$host" | sudo tee -a /etc/hosts > /dev/null; \
+# 		fi; 
+# 	done
 
 down:
 	@$(COMPOSE_BONUS) down --remove-orphans
@@ -56,6 +56,7 @@ clean: down
 		adminer:inception \
 		static-site:inception \
 		status:inception 2>/dev/null || true
+		rm -rf $(SECRET_FILES)
 
 fclean: clean
 	@docker volume rm -f inception_wordpress_files inception_mariadb_data 2>/dev/null || true

@@ -1,21 +1,8 @@
-# =============================================================================
-#  Inception - MANDATORY stack
-# -----------------------------------------------------------------------------
-#  Exactly the three services the subject asks for: nginx, wordpress, mariadb.
-#  Bonus services live in docker-compose.bonus.yml and are never loaded here.
-#
-#      make          -> this file only
-#      make bonus    -> this file + docker-compose.bonus.yml
-# =============================================================================
 name: inception
 
 services:
-
-  # ---------------------------------------------------------------------------
-  #  NGINX - the only door into the infrastructure, TLS 1.2/1.3, port 443 only.
-  # ---------------------------------------------------------------------------
   nginx:
-    image: nginx:inception          # image name == service name, no `latest` tag
+    image: nginx:inception        
     container_name: nginx
     build:
       context: ./requirements/nginx
@@ -24,8 +11,7 @@ services:
     ports:
       - "443:443"
     volumes:
-      # nginx serves the static assets of the site straight from the shared
-      # WordPress volume, and forwards only .php to php-fpm.
+
       - wordpress_files:/var/www/html
     depends_on:
       - wordpress
@@ -33,9 +19,6 @@ services:
       - inception
     restart: always
 
-  # ---------------------------------------------------------------------------
-  #  WordPress + php-fpm - no web server inside, listens on 9000 for nginx.
-  # ---------------------------------------------------------------------------
   wordpress:
     image: wordpress:inception
     container_name: wordpress
@@ -64,9 +47,6 @@ services:
       - inception
     restart: always
 
-  # ---------------------------------------------------------------------------
-  #  MariaDB - never published to the host, reachable only over the network.
-  # ---------------------------------------------------------------------------
   mariadb:
     image: mariadb:inception
     container_name: mariadb
@@ -83,19 +63,13 @@ services:
     networks:
       - inception
     healthcheck:
-      # Over the unix socket: the root account is deliberately not reachable
-      # over TCP, so a TCP ping would (correctly) be refused.
+  
       test: ["CMD-SHELL", "mariadb-admin ping --silent --socket=/run/mysqld/mysqld.sock --user=root --password=\"$$(cat /run/secrets/db_root_password)\""]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 30s
     restart: always
-
-# =============================================================================
-#  Secrets - passwords are files mounted at /run/secrets/<name>, never env vars
-#  and never baked into an image layer.
-# =============================================================================
 secrets:
   db_root_password:
     file: ../secrets/db_root_password.txt
@@ -105,12 +79,6 @@ secrets:
     file: ../secrets/wp_admin_password.txt
   wp_user_password:
     file: ../secrets/wp_user_password.txt
-
-# =============================================================================
-#  Named volumes - required by the subject, and bound to /home/<login>/data
-#  through the local driver (this is still a *named* volume, not a bind mount
-#  declared on the service).
-# =============================================================================
 volumes:
   wordpress_files:
     driver: local
@@ -124,10 +92,6 @@ volumes:
       type: none
       o: bind
       device: ${DATA_PATH}/mariadb
-
-# =============================================================================
-#  Network - a user-defined bridge. No `network: host`, no `links:`.
-# =============================================================================
 networks:
   inception:
     name: inception

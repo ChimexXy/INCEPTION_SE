@@ -1,6 +1,3 @@
-# =============================================================================
-#  BONUS - static showcase site (HTML / CSS / vanilla JS - no PHP anywhere)
-# =============================================================================
 FROM debian:bookworm
 
 RUN apt-get update \
@@ -17,5 +14,4 @@ RUN chown -R www-data:www-data /var/www/static
 
 EXPOSE 3000
 
-# Plain HTTP on an internal port: TLS is terminated once, by the main nginx.
 CMD ["nginx", "-g", "daemon off;"]

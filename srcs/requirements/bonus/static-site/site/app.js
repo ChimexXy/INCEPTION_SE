@@ -1,5 +1,3 @@
-// Tiny vanilla-JS renderer: the point of this container is that the showcase
-// site is built in a language that is explicitly NOT PHP.
 const SERVICES = [
   { name: 'nginx',       kind: 'core',  desc: 'TLSv1.2/1.3 reverse proxy. The only published port of the whole stack.' },
   { name: 'wordpress',   kind: 'core',  desc: 'php-fpm 8.2 on FastCGI :9000. Installed head-less with wp-cli.' },

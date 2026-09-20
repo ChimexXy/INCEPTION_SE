@@ -1,4 +1,3 @@
-# Overrides Debian's defaults (loaded last: 99-).
 [mysqld]
 user                    = mysql
 port                    = 3306
@@ -6,13 +5,11 @@ datadir                 = /var/lib/mysql
 socket                  = /run/mysqld/mysqld.sock
 pid-file                = /run/mysqld/mysqld.pid
 
-# Listen on every interface so the `wordpress` container can reach us over the
-# `inception` docker network. The port is never published to the host.
+ host.
 bind-address            = 0.0.0.0
 skip-networking         = 0
 
-# Containers come and go with unpredictable names; skipping reverse DNS avoids
-# slow/failed lookups on every connection.
+
 skip-name-resolve
 
 character-set-server    = utf8mb4

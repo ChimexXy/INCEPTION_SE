@@ -1,26 +1,4 @@
-# =============================================================================
-#  Inception - BONUS overlay
-# -----------------------------------------------------------------------------
-#  This file is never used on its own. It is layered on top of the mandatory
-#  compose file:
-#
-#      docker compose -f docker-compose.yml -f docker-compose.bonus.yml up -d
-#      (i.e. `make bonus`)
-#
-#  It only ADDS things:
-#    * five new services, each with its own Dockerfile under requirements/bonus/
-#    * two environment variables on services that already exist, which switch on
-#      behaviour that stays dormant in the mandatory run:
-#         - nginx     ENABLE_BONUS=1 -> publishes the bonus sub-domains
-#         - wordpress REDIS_HOST     -> installs and enables the object cache
-#
-#  Nothing in the mandatory part is modified or overridden, so `make` alone
-#  still produces exactly the infrastructure described in the subject.
-# =============================================================================
-
 services:
-
-  # --- switches on the dormant bonus behaviour of the mandatory services ------
   nginx:
     environment:
       - ENABLE_BONUS=1
@@ -35,9 +13,6 @@ services:
       redis:
         condition: service_started
 
-  # ---------------------------------------------------------------------------
-  #  redis - object cache for WordPress
-  # ---------------------------------------------------------------------------
   redis:
     image: redis:inception
     container_name: redis
@@ -47,9 +22,6 @@ services:
       - inception
     restart: always
 
-  # ---------------------------------------------------------------------------
-  #  ftp - vsftpd on the WordPress website volume
-  # ---------------------------------------------------------------------------
   ftp:
     image: ftp:inception
     container_name: ftp
@@ -60,12 +32,8 @@ services:
     secrets:
       - ftp_password
     volumes:
-      # The very same named volume WordPress and nginx use: a file uploaded
-      # over FTP is served by the website immediately.
       - wordpress_files:/var/www/html
     ports:
-      # FTP cannot be proxied behind nginx, so it is the one bonus service that
-      # needs its own published ports (the subject allows this for the bonus).
       - "21:21"
       - "21000-21010:21000-21010"
     depends_on:
@@ -74,9 +42,6 @@ services:
       - inception
     restart: always
 
-  # ---------------------------------------------------------------------------
-  #  adminer - database administration UI, behind nginx on adminer.<domain>
-  # ---------------------------------------------------------------------------
   adminer:
     image: adminer:inception
     container_name: adminer
@@ -89,9 +54,6 @@ services:
       - inception
     restart: always
 
-  # ---------------------------------------------------------------------------
-  #  static-site - HTML/CSS/JS showcase, behind nginx on static.<domain>
-  # ---------------------------------------------------------------------------
   static-site:
     image: static-site:inception
     container_name: static-site
@@ -101,10 +63,6 @@ services:
       - inception
     restart: always
 
-  # ---------------------------------------------------------------------------
-  #  status - the "service of your choice": a home-made health dashboard,
-  #  behind nginx on status.<domain>. See its Dockerfile for the rationale.
-  # ---------------------------------------------------------------------------
   status:
     image: status:inception
     container_name: status
