@@ -1,4 +1,5 @@
 secrets/*.txt
+srcs/.env
 
 *.log
 .DS_Store
@@ -6,4 +7,3 @@ secrets/*.txt
 __pycache__/
 *.pyc
 
-srcs/.env
