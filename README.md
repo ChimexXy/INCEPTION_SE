@@ -107,7 +107,7 @@ WP_URL=https://mozahnou.42.fr
 WP_ADMIN_USER=site_owner
 WP_ADMIN_EMAIL=site_owner@mozahnou.42.fr
 WP_USER=mozahnou_editor
-WP_USER_EMAIL=editor@mozahnou_editor.fr
+WP_USER_EMAIL=editor@mozahnou.42.fr
 ~~~
 
 The project also defines the bonus Redis and FTP settings in the same file.
