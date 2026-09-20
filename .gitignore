@@ -1,10 +1,9 @@
-# ---- Credentials: never committed (subject: publicly stored credentials = fail)
 secrets/*.txt
 
-# ---- Local runtime artefacts
 *.log
 .DS_Store
 
-# ---- Python bytecode from local syntax checks
 __pycache__/
 *.pyc
+
+srcs/.env
