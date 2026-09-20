@@ -1,3 +1,4 @@
+#!/bin/sh
 set -eu
 
 SSL_DIR=/etc/nginx/ssl

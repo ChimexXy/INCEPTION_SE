@@ -1,3 +1,4 @@
+#!/bin/sh
 set -eu
 
 DB_ROOT_PASSWORD="$(cat /run/secrets/db_root_password)"
