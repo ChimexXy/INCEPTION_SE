@@ -1,288 +1,447 @@
+
 # Developer documentation
 
-How to set this project up from nothing, how it is built, and how to work on it.
-End-user topics are in [USER_DOC.md](USER_DOC.md); the verification plan is in
-[TESTING_ROADMAP.md](TESTING_ROADMAP.md).
+This document describes the implementation and development workflow for the current Inception project. User operations are in USER_DOC.md.
 
----
+## 1. Repository layout
 
-## 1. Setting up from scratch
-
-### Prerequisites
-
-| Tool | Why | Check |
-|---|---|---|
-| Docker Engine ≥ 20.10 | builds and runs the containers | `docker --version` |
-| Docker Compose v2 | the `docker compose` sub-command | `docker compose version` |
-| GNU make | the entry point of the project | `make --version` |
-| openssl | generates the secret values | `openssl version` |
-| curl | used by the test suites | `curl --version` |
-
-The user must be able to talk to the Docker daemon without `sudo`:
-
-```bash
-sudo usermod -aG docker "$USER"   # then log out and back in
-docker ps                         # must work
-```
-
-### Repository layout
-
-```
+~~~text
 .
-├── Makefile                     the only entry point
-├── README.md  USER_DOC.md  DEV_DOC.md  TESTING_ROADMAP.md
-├── secrets/                     one password per file, git-ignored
-│   ├── db_root_password.txt
-│   ├── db_password.txt
-│   ├── wp_admin_password.txt
-│   ├── wp_user_password.txt
-│   └── ftp_password.txt         (bonus)
-├── subject/en.subject.pdf
-├── tools/                       test suites
-│   ├── lib.sh
-│   ├── test_mandatory.sh
-│   └── test_bonus.sh
+├── Makefile
+├── README.md
+├── USER_DOC.md
+├── DEV_DOC.md
+├── TESTING_ROADMAP.md
+├── secrets/
 └── srcs/
-    ├── .env                     non-secret configuration
-    ├── docker-compose.yml       MANDATORY stack (3 services)
-    ├── docker-compose.bonus.yml BONUS overlay (5 more services)
+    ├── .env
+    ├── docker-compose.yml
+    ├── docker-compose.bonus.yml
     └── requirements/
-        ├── nginx/       Dockerfile  conf/*.template  tools/entrypoint.sh
-        ├── wordpress/   Dockerfile  conf/www.conf    tools/entrypoint.sh
-        ├── mariadb/     Dockerfile  conf/99-inception.cnf  tools/entrypoint.sh
+        ├── nginx/
+        ├── wordpress/
+        ├── mariadb/
         └── bonus/
-            ├── redis/        Dockerfile  conf/redis.conf
-            ├── ftp/          Dockerfile  conf/vsftpd.conf  tools/entrypoint.sh
-            ├── adminer/      Dockerfile
-            ├── static-site/  Dockerfile  conf/static.conf  site/{index.html,style.css,app.js}
-            └── status/       Dockerfile  app/server.py
-```
+            ├── redis/
+            ├── ftp/
+            ├── adminer/
+            ├── static-site/
+            └── status/
+~~~
 
-### Configuration files
+The mandatory Compose file defines exactly three services: nginx, wordpress and mariadb.
 
-**`srcs/.env`** — committed, and contains no credential. Compose loads it
-automatically because it sits next to the compose file.
+The bonus Compose file is an overlay. It adds Redis, FTP, Adminer, the static site and the status service, and changes the WordPress/NGINX environment for bonus behavior.
 
-| Variable | Used by | Meaning |
-|---|---|---|
-| `LOGIN`, `DOMAIN_NAME`, `DATA_PATH` | Makefile, nginx, compose | identity, vhost name, where the volumes live |
-| `MYSQL_HOST`, `MYSQL_DATABASE`, `MYSQL_USER` | mariadb, wordpress | database coordinates |
-| `WP_URL`, `WP_TITLE`, `WP_ADMIN_USER`, `WP_ADMIN_EMAIL`, `WP_USER`, `WP_USER_EMAIL` | wordpress | what WP-CLI installs |
-| `REDIS_HOST`, `REDIS_PORT` | wordpress, redis | **bonus only** — injected by the overlay |
-| `FTP_USER`, `FTP_PASV_MIN`, `FTP_PASV_MAX` | ftp | **bonus only** |
+## 2. Makefile
 
-To move the project to another login, change `LOGIN`, `DOMAIN_NAME`,
-`DATA_PATH`, `WP_URL` and the e-mail addresses, then `make re`.
+The current Makefile defines:
 
-**`secrets/*.txt`** — git-ignored, one password per file, no trailing newline
-issues (each is a single line). `make secrets` creates any that is missing with
-`openssl rand -base64 24`; existing files are never overwritten. To supply your
-own value, just write the file before the first `make`.
-
-Compose declares them as secrets, so each is mounted read-only at
-`/run/secrets/<name>` inside the containers that need it — and nowhere else.
-
----
-
-## 2. Building and launching
-
-```bash
-make              # setup + build + start the MANDATORY stack
-make bonus        # setup + build + start mandatory + bonus
-make build        # build the mandatory images without starting them
-make build-bonus  # build every image
-```
-
-`make` first runs `setup`, which is three idempotent steps:
-
-| Target | Effect |
+| Target | Purpose |
 |---|---|
-| `dirs` | `mkdir -p /home/mozahnou/data/{wordpress,mariadb}` — the bind-backed volumes need these paths to exist |
-| `secrets` | generates any missing `secrets/*.txt` |
-| `hosts` | adds `mozahnou.42.fr` and the bonus sub-domains to `/etc/hosts` (asks for `sudo`) |
+| make | setup + build + start mandatory stack |
+| make bonus | setup + build + start mandatory + bonus |
+| make setup | create data directories and missing secrets |
+| make dirs | create WordPress and MariaDB data directories |
+| make secrets | generate missing secret files |
+| make down | stop and remove Compose containers |
+| make clean | down + remove project images + remove generated secrets |
+| make fclean | clean + remove project volumes + invoke DATA_PATH cleanup |
+| make re | fclean then mandatory make |
 
-Underneath, the Makefile is a thin wrapper:
+There are currently no make test, make test-bonus, make ps, make logs, make build, make build-bonus, make hosts or make help targets.
 
-```bash
-# mandatory
+Use Docker and Compose commands directly for inspection and testing.
+
+The Makefile currently reads DATA_PATH and DOMAIN_NAME from srcs/.env with sed.
+
+## 3. Environment and secrets
+
+### srcs/.env
+
+This file contains non-sensitive configuration:
+
+- login and domain;
+- persistent data path;
+- MariaDB host, database and user;
+- WordPress URL, title, users and e-mail addresses;
+- Redis host/port for the bonus;
+- FTP user and passive-port settings for the bonus.
+
+Passwords are not stored there.
+
+### secrets/
+
+The Makefile generates these local files when they are missing:
+
+~~~text
+db_root_password.txt
+db_password.txt
+wp_admin_password.txt
+wp_user_password.txt
+ftp_password.txt
+~~~
+
+The files are git-ignored. Compose mounts them as Docker secrets under /run/secrets/.
+
+## 4. Mandatory Compose architecture
+
+### NGINX
+
+- custom image;
+- host port 443 published;
+- shared WordPress volume mounted at /var/www/html;
+- environment contains DOMAIN_NAME;
+- renders the virtual-host template at startup;
+- optionally renders the bonus virtual hosts;
+- creates a self-signed certificate when required;
+- checks the generated NGINX configuration with nginx -t;
+- runs NGINX in the foreground.
+
+### WordPress
+
+- custom image;
+- PHP-FPM 8.2;
+- listens internally on 0.0.0.0:9000;
+- shared WordPress volume;
+- waits for healthy MariaDB through Compose dependency conditions;
+- performs first installation with WP-CLI;
+- reads passwords from Docker secrets;
+- enables Redis integration only when the bonus environment is provided;
+- runs php-fpm8.2 -F as the main process.
+
+### MariaDB
+
+- custom image;
+- MariaDB server from Debian Bookworm packages;
+- no host port published;
+- data stored in the MariaDB named volume;
+- healthcheck uses mariadb-admin ping through the MariaDB socket;
+- initializes the database and application user only for a fresh data directory;
+- runs mariadbd in the foreground.
+
+## 5. Build and startup sequence
+
+A normal mandatory start is:
+
+~~~bash
+make
+~~~
+
+The effective Compose command is:
+
+~~~bash
 docker compose -f srcs/docker-compose.yml up -d --build
+~~~
 
-# mandatory + bonus
+The bonus command uses both files:
+
+~~~bash
 docker compose -f srcs/docker-compose.yml -f srcs/docker-compose.bonus.yml up -d --build
-```
+~~~
 
-### How the overlay works
+The dependency order is:
 
-`docker-compose.bonus.yml` is never used alone. Compose merges the two files in
-order, and the overlay only *adds*:
+~~~text
+MariaDB
+  -> healthcheck passes
+  -> WordPress can start its initialization
+  -> NGINX provides the HTTPS entry point
+~~~
 
-- five new services, each with its own Dockerfile under `requirements/bonus/`;
-- `ENABLE_BONUS=1` on nginx → its entrypoint renders `bonus.conf.template` into
-  `conf.d/`, publishing the `static.`, `adminer.` and `status.` vhosts;
-- `REDIS_HOST` / `REDIS_PORT` on wordpress → its entrypoint installs and enables
-  the Redis Object Cache plugin.
+NGINX depends on the WordPress service, while WordPress depends on a healthy MariaDB service.
 
-Both switches are read with `${VAR:-default}` in the entrypoints, so on a
-mandatory-only run they are simply absent and the code path never executes.
-`docker compose -f srcs/docker-compose.yml config --services` must always print
-exactly three services — the first check of the bonus test suite.
+## 6. Entrypoints and PID 1
 
-### What happens on first start
+The custom entrypoints prepare the container and then use exec for the final daemon.
 
-```
-mariadb    volume empty? → mariadb-install-db → mariadbd --bootstrap (create db + user)
-           → exec mariadbd                                       [healthcheck: mariadb-admin ping]
-wordpress  wait for mariadb (bounded, 60 s) → wp core download → wp config create
-           → wp core install → wp user create → [bonus: wp plugin install redis-cache]
-           → exec php-fpm8.2 -F
-nginx      envsubst the vhost templates → generate a self-signed cert if missing
-           → nginx -t → exec nginx -g "daemon off;"
-```
+Conceptually:
 
-Every step is guarded, so a restart re-runs none of it.
+~~~text
+entrypoint shell
+    |
+    +-- setup / initialization
+    |
+    +-- exec daemon
+             |
+             +-- daemon becomes PID 1
+~~~
 
----
+This is important for signal handling and clean shutdown.
 
-## 3. Day-to-day commands
+Do not replace the real foreground process with commands such as:
 
-### Containers
+~~~text
+tail -f /dev/null
+sleep infinity
+while true; do ...; done
+~~~
 
-```bash
-make ps                                         # status of every container
-make logs                                       # follow all logs
-docker logs -f wordpress                        # one container
-docker exec -it wordpress bash                  # a shell inside a container
-docker compose -f srcs/docker-compose.yml restart nginx
-docker compose -f srcs/docker-compose.yml up -d --build --force-recreate nginx
-```
+For correction, be able to explain why the service process needs to remain in the foreground and why exec is used.
 
-### Rebuilding after a change
+## 7. NGINX and TLS
 
-| You changed | Do this |
-|---|---|
-| a `conf/` file or an entrypoint | `docker compose ... up -d --build <service>` |
-| a `Dockerfile` | same — the layer cache handles the rest |
-| `srcs/.env` | `docker compose ... up -d --force-recreate` (env is read at container creation) |
-| a compose file | `docker compose ... up -d` |
-| something in the WordPress install logic | `make fclean && make` — the install only runs on an empty volume |
+The NGINX entrypoint:
 
-### WordPress (WP-CLI is installed in the image)
+1. renders the main vhost using DOMAIN_NAME;
+2. renders bonus vhosts when ENABLE_BONUS=1;
+3. removes the bonus configuration in mandatory-only mode;
+4. creates the self-signed certificate when missing;
+5. runs nginx -t;
+6. executes the foreground NGINX command.
 
-```bash
-wp() { docker exec wordpress /usr/local/bin/wp --allow-root --path=/var/www/html "$@"; }
+The mandatory host mapping is:
 
-wp user list
-wp plugin list
-wp option get siteurl
-wp db check
-wp redis status          # bonus
-```
+~~~text
+host 443 -> nginx 443
+~~~
 
-### Database
+Port 80 is not published.
 
-```bash
-docker exec -it mariadb sh -c \
-  'mariadb -u root -p"$(cat /run/secrets/db_root_password)" wordpress'
+## 8. WordPress and PHP-FPM
 
-# dump / restore
-docker exec mariadb sh -c \
-  'mariadb-dump -u root -p"$(cat /run/secrets/db_root_password)" wordpress' > backup.sql
-docker exec -i mariadb sh -c \
-  'mariadb -u root -p"$(cat /run/secrets/db_root_password)" wordpress' < backup.sql
-```
+NGINX does not execute PHP itself.
 
-`root` is deliberately reachable only through the unix socket, never over TCP —
-which is why these commands run *inside* the container.
+The request path is:
 
-### Volumes
+~~~text
+Browser
+  |
+  | HTTPS
+  v
+NGINX
+  |
+  | FastCGI :9000
+  v
+PHP-FPM / WordPress
+  |
+  | SQL
+  v
+MariaDB
+~~~
 
-```bash
-docker volume ls --filter name=inception
-docker volume inspect inception_wordpress_files
-ls -la /home/mozahnou/data/wordpress
-```
+PHP-FPM is configured in srcs/requirements/wordpress/conf/wordpress.conf.
 
-### Cleaning
+The WordPress entrypoint uses a bounded retry loop for MariaDB. On a fresh volume it:
 
-| Command | Containers | Images | Volumes | Host data |
-|---|---|---|---|---|
-| `make down` | removed | kept | kept | kept |
-| `make clean` | removed | removed | kept | kept |
-| `make fclean` | removed | removed | removed | **deleted** |
-| `make re` | `fclean`, then a full rebuild | | | |
+- downloads WordPress with WP-CLI;
+- creates wp-config.php;
+- sets the site URL;
+- installs WordPress;
+- creates the second user;
+- optionally enables Redis;
+- starts PHP-FPM.
 
-`fclean` deletes the volume contents from inside a throwaway root container
-(`docker run --rm -v /home/mozahnou/data:/data debian:bookworm rm -rf ...`),
-because those files belong to the `mysql` and `www-data` users. That keeps the
-Makefile free of `sudo`.
+When wp-config.php already exists, the initial installation is skipped.
 
----
+## 9. MariaDB initialization
 
-## 4. Where the data lives, and how it persists
+The MariaDB Dockerfile removes the package-created contents of /var/lib/mysql so a new mounted volume starts empty.
 
-Two named volumes, both backed by a directory under `/home/mozahnou/data`:
+The entrypoint then:
 
-| Volume | Mounted at | On the host | Holds |
-|---|---|---|---|
-| `inception_wordpress_files` | `/var/www/html` in nginx, wordpress and ftp | `/home/mozahnou/data/wordpress` | WordPress core, `wp-config.php`, themes, plugins, uploads |
-| `inception_mariadb_data` | `/var/lib/mysql` in mariadb | `/home/mozahnou/data/mariadb` | the databases, InnoDB tablespaces, logs |
+1. creates /run/mysqld;
+2. initializes the data directory with mariadb-install-db;
+3. runs a bootstrap SQL batch;
+4. sets the root password;
+5. creates the WordPress database;
+6. creates the WordPress database user;
+7. grants privileges;
+8. verifies that the database directory was created;
+9. starts mariadbd.
 
-They are declared like this:
+An existing initialized volume is reused rather than reinitialized.
 
-```yaml
+## 10. Volumes and persistence
+
+The project uses two named volumes with local-driver bind-style storage:
+
+~~~yaml
 volumes:
   wordpress_files:
     driver: local
-    driver_opts: { type: none, o: bind, device: /home/mozahnou/data/wordpress }
-```
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/mozahnou/data/wordpress
+~~~
 
-This is a **named volume** — services refer to it by name and no service
-declares a host path — whose storage happens to be a known directory, which is
-what the subject asks for. `docker volume ls` lists it; `docker volume rm`
-removes it.
+and the equivalent MariaDB volume.
 
-Redis has no volume at all: it is a cache, persistence is disabled
-(`save ""`, `appendonly no`), and losing it costs one slow page load.
+The important distinction is that the Docker object is still a named volume:
 
-### What survives what
+~~~text
+inception_wordpress_files
+inception_mariadb_data
+~~~
 
-| Action | WordPress files | Database |
-|---|---|---|
-| `docker restart <container>` | kept | kept |
-| `make down` then `make` | kept | kept |
-| `docker compose down -v` | **deleted** | **deleted** |
-| `make fclean` | **deleted** | **deleted** |
-| deleting `/home/mozahnou/data/*` | **deleted** | **deleted** |
+while the backing data is stored under:
 
-Because the entrypoints are idempotent, a stack brought back up on existing
-volumes reuses them untouched: MariaDB finds its data directory and skips
-initialisation, WordPress finds `wp-config.php` and skips the install.
+~~~text
+/home/mozahnou/data/wordpress
+/home/mozahnou/data/mariadb
+~~~
 
-### Two Docker behaviours worth knowing
+Verify the real configuration with:
 
-1. **A fresh volume is seeded from the image.** The first time an empty volume
-   is mounted, Docker copies whatever the image has at that path into it. The
-   Debian `mariadb-server` package ships a pre-built `/var/lib/mysql`, and the
-   `nginx` package ships `/var/www/html/index.nginx-debian.html`. Both are
-   deleted in their Dockerfiles, otherwise a "new" volume would arrive
-   pre-populated — which silently defeats every "is this the first run?" test.
+~~~bash
+docker volume inspect inception_wordpress_files
+docker volume inspect inception_mariadb_data
+~~~
 
-2. **`mariadbd --bootstrap` parses one statement per line.** A statement wrapped
-   across two lines is a syntax error, and the batch stops there while still
-   exiting 0. The init SQL is therefore written one statement per line, and the
-   entrypoint verifies afterwards that the database directory exists rather than
-   trusting the exit code.
+## 11. Network
 
----
+The project defines a user-created bridge network named inception.
 
-## 5. Conventions to keep
+Services communicate using Docker DNS:
 
-- Every entrypoint ends in `exec "$@"`; the daemon is PID 1.
-- Every image is built `FROM debian:bookworm`; no `latest` tag anywhere.
-- Passwords are read from `/run/secrets/`, never passed as environment variables
-  and never written in a Dockerfile.
-- The mandatory compose file stays at exactly three services.
-- A new bonus service means: a directory under `srcs/requirements/bonus/`, a
-  service block in `docker-compose.bonus.yml`, a vhost in
-  `nginx/conf/bonus.conf.template` if it is a web UI, an entry in the `CHECKS`
-  list of `status/app/server.py`, and a section in `tools/test_bonus.sh`.
+~~~text
+wordpress -> mariadb:3306
+wordpress -> redis:6379       # bonus
+adminer   -> mariadb:3306     # bonus
+~~~
+
+Do not replace this with host networking or legacy links.
+
+## 12. Bonus overlay
+
+Run the bonus with both Compose files:
+
+~~~bash
+docker compose -f srcs/docker-compose.yml -f srcs/docker-compose.bonus.yml up -d --build
+~~~
+
+The overlay adds:
+
+- redis;
+- ftp;
+- adminer;
+- static-site;
+- status.
+
+It also provides ENABLE_BONUS=1 to NGINX and REDIS_HOST/REDIS_PORT to WordPress.
+
+### Bonus port behavior
+
+Web-based bonus services remain behind NGINX.
+
+FTP publishes:
+
+~~~text
+host 21 -> ftp 21
+host 21000-21010 -> ftp 21000-21010
+~~~
+
+because FTP is not an HTTP service and needs its own control/data channels.
+
+## 13. Development workflow
+
+### Change a Dockerfile or service configuration
+
+Rebuild the affected service:
+
+~~~bash
+docker compose -f srcs/docker-compose.yml build <service>
+docker compose -f srcs/docker-compose.yml up -d <service>
+~~~
+
+For a bonus service, include docker-compose.bonus.yml in the command.
+
+### Change srcs/.env
+
+Recreate the affected containers:
+
+~~~bash
+docker compose -f srcs/docker-compose.yml up -d --force-recreate
+~~~
+
+### Change WordPress installation logic
+
+Because the initialization is intentionally one-time, test changes with fresh data:
+
+~~~bash
+make fclean
+make
+~~~
+
+## 14. Debugging commands
+
+Containers:
+
+~~~bash
+docker ps
+docker inspect <container>
+docker logs <container>
+~~~
+
+Compose:
+
+~~~bash
+docker compose -f srcs/docker-compose.yml ps
+docker compose -f srcs/docker-compose.yml config
+docker compose -f srcs/docker-compose.yml config --services
+~~~
+
+Network:
+
+~~~bash
+docker network inspect inception
+docker exec wordpress getent hosts mariadb
+~~~
+
+Volumes:
+
+~~~bash
+docker volume ls --filter name=inception
+docker volume inspect inception_wordpress_files
+docker volume inspect inception_mariadb_data
+~~~
+
+WordPress:
+
+~~~bash
+docker exec wordpress wp --allow-root --path=/var/www/html user list
+docker exec wordpress wp --allow-root --path=/var/www/html option get siteurl
+docker exec wordpress wp --allow-root --path=/var/www/html db check
+~~~
+
+MariaDB:
+
+~~~bash
+docker inspect mariadb --format '{{.State.Health.Status}}'
+docker exec mariadb mariadb-admin ping --socket=/run/mysqld/mysqld.sock
+~~~
+
+TLS:
+
+~~~bash
+curl -kI https://mozahnou.42.fr
+openssl s_client -connect mozahnou.42.fr:443 -tls1_2
+openssl s_client -connect mozahnou.42.fr:443 -tls1_3
+~~~
+
+## 15. Defense checklist
+
+For every subject requirement, know:
+
+1. **Where** it is implemented.
+2. **How** to demonstrate it.
+3. **Why** it is designed that way.
+
+Core subjects:
+
+- Docker image versus container;
+- Dockerfile versus Compose;
+- Docker versus virtual machine;
+- bridge network and service-name DNS;
+- named volumes versus bind mounts;
+- persistence;
+- Docker secrets versus environment variables;
+- NGINX and TLS;
+- FastCGI and PHP-FPM;
+- MariaDB initialization;
+- PID 1 and exec;
+- restart/dependency behavior;
+- mandatory versus bonus separation.
+
+The complete practical test sequence is in TESTING_ROADMAP.md.
