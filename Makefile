@@ -36,13 +36,6 @@ $(SECRETS_DIR)/%.txt:
 	@openssl rand -base64 24 | tr -d '\n/+=' | cut -c1-24 > $@
 	@chmod 600 $@
 
-# hosts:
-# 	@for host in $(DOMAIN_NAME) static.$(DOMAIN_NAME) adminer.$(DOMAIN_NAME) status.$(DOMAIN_NAME); do \
-# 		if ! grep -qE "^[^#]*[[:space:]]$$host([[:space:]]|$$)" /etc/hosts; then \
-# 			echo "127.0.0.1 $$host" | sudo tee -a /etc/hosts > /dev/null; \
-# 		fi; 
-# 	done
-
 down:
 	@$(COMPOSE_BONUS) down --remove-orphans
 
@@ -61,6 +54,6 @@ clean: down
 fclean: clean
 	@docker volume rm -f inception_wordpress_files inception_mariadb_data 2>/dev/null || true
 	@docker run --rm -v $(DATA_PATH):/data debian:bookworm \
-		rm -rf /data/wordpress /data/mariadb 2>/dev/null || true
+	rm -rf $(DATA_PATH) 2>/dev/null || true
 
 re: fclean all

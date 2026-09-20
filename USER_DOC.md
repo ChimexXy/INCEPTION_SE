@@ -32,17 +32,15 @@ Developer topics are in [DEV_DOC.md](DEV_DOC.md).
 Run everything from the repository root.
 
 ```bash
-make              # start the mandatory stack
-make bonus        # start the mandatory stack + the five bonus services
+make             
+make bonus        
 ```
 
 The very first run takes a few minutes: it builds every image from Debian,
 downloads WordPress and creates the database. Later runs start in seconds.
 
 ```bash
-make down         # stop and remove the containers — YOUR DATA IS KEPT
-make stop         # pause the containers without removing them
-make start        # resume them
+make down      
 ```
 
 To start again after `make down`, just run `make` (or `make bonus`) again. The
